@@ -38,8 +38,8 @@ class AnimatedBottomNav extends StatelessWidget {
             children: _tabs.map((tab) {
               final isActive = activeTab == tab.$1;
               return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
+                onTap: () async {
+                  await HapticFeedback.lightImpact();
                   onTabChange(tab.$1);
                 },
                 child: AnimatedScale(

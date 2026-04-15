@@ -1,6 +1,6 @@
 import 'package:gossip_garden/features/plants/data/datasources/plant_datasource.dart';
 import 'package:gossip_garden/features/plants/data/models/plant.dart';
-import 'package:gossip_garden/features/plants/data/models/plant_enums.dart'; 
+import 'package:gossip_garden/features/plants/data/models/plant_enums.dart';
 import 'package:gossip_garden/features/plants/data/models/comfort_zones.dart';
 import 'package:gossip_garden/features/plants/data/models/sensors.dart';
 
@@ -15,7 +15,7 @@ class PlantMockDatasource implements PlantDatasource {
         id: '1',
         name: 'Monstera',
         species: 'Monstera Deliciosa',
-        image: 'assets/plant_hero.png',
+        image: '',
         personality: PlantPersonality.wise,
         health: 78.0,
         mood: PlantMood.thirsty,
@@ -42,7 +42,7 @@ class PlantMockDatasource implements PlantDatasource {
         id: '2',
         name: 'Paco',
         species: 'Cactus',
-        image: 'assets/cactus.png',
+        image: '',
         personality: PlantPersonality.dramatic,
         health: 95.0,
         mood: PlantMood.happy,

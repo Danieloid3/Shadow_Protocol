@@ -197,6 +197,104 @@ class GardenViewScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildPlantCard(Plant plant, NavigationNotifier navNotifier) {
+    return GestureDetector(
+      onTap: () async {
+        await HapticFeedback.lightImpact();
+        navNotifier.selectPlant(plant.id);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [_cardShadow],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: plant.image.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        plant.image,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Icon(
+                      Icons.local_florist,
+                      size: 40,
+                      color: _primaryColor,
+                    ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              plant.name,
+              style: _textStyle(16, FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              plant.species,
+              style: _textStyle(12, FontWeight.w500, Colors.grey.shade500),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: plant.health / 100,
+                    backgroundColor: Colors.grey.shade200,
+                    color: plant.health > 70
+                        ? Colors.green
+                        : plant.health > 40
+                            ? Colors.orange
+                            : Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                    minHeight: 8,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Salud',
+                        style: _textStyle(
+                            12, FontWeight.w500, Colors.grey.shade600),
+                      ),
+                      Text(
+                        '${plant.health.toInt()}%',
+                        style: _textStyle(14, FontWeight.w700, _primaryColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getMoodColor(plant.mood).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                plant.mood.name.toUpperCase(),
+                style:
+                    _textStyle(10, FontWeight.w600, _getMoodColor(plant.mood)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Color _getMoodColor(PlantMood mood) {
     switch (mood) {

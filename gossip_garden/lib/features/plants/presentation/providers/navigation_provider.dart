@@ -1,12 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// ✅ DEFINIMOS TabId SOLO AQUÍ (fuente única)
-enum TabId {
-  dashboard,
-  chat,
-  garden,
-  profile
-}
+enum TabId { dashboard, chat, garden, profile }
 
 class NavigationState {
   final TabId activeTab;

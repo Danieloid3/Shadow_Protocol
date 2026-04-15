@@ -26,8 +26,8 @@ class AnimatedBottomNav extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
-          height: 90,
-          padding: const EdgeInsets.only(top: 10, bottom: 20),
+          height: 100,
+          padding: const EdgeInsets.only(top: 12, bottom: 24),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.85),
             border:
@@ -38,8 +38,8 @@ class AnimatedBottomNav extends StatelessWidget {
             children: _tabs.map((tab) {
               final isActive = activeTab == tab.$1;
               return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
+                onTap: () async {
+                  await HapticFeedback.lightImpact();
                   onTabChange(tab.$1);
                 },
                 child: AnimatedScale(

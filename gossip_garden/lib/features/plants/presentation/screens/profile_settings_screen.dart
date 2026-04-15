@@ -1,114 +1,122 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/plant_providers.dart';
-import '../../data/models/plant.dart';
-import '../../data/models/plant_enums.dart';
-import 'package:gossip_garden/core/theme/app_design_system.dart';
-
-final favoritePlantsProvider = StateProvider<List<String>>((ref) => ['1', '2']);
-final viewModeProvider =
-    StateProvider<bool>((ref) => true); // true = grid, false = list
 
 class ProfileSettingsScreen extends ConsumerWidget {
   const ProfileSettingsScreen({super.key});
 
+  static const _backgroundColor = Color(0xFFFDFCF8);
+  static const _primaryColor = Color(0xFF4A6741);
+  static const _cardShadow = BoxShadow(
+    color: Color(0x0A785A32),
+    blurRadius: 20,
+  );
+
+  TextStyle _textStyle(double fontSize, FontWeight fontWeight, [Color? color]) {
+    return TextStyle(
+      fontFamily: 'PlusJakartaSans',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color ?? Colors.black87,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final plantsAsync = ref.watch(plantsProvider);
-    final favorites = ref.watch(favoritePlantsProvider);
-    final viewMode = ref.watch(viewModeProvider);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFCF8),
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        actions: [
-          IconButton(
-            icon: Icon(viewMode ? Icons.grid_view : Icons.list),
-            onPressed: () =>
-                ref.read(viewModeProvider.notifier).state = !viewMode,
-          ),
-        ],
-      ),
-      body: plantsAsync.when(
-        data: (plants) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+      backgroundColor: _backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildUserHeader(),
-              const SizedBox(height: 24),
+              _buildProfileHeader(),
+              const SizedBox(height: 40),
               _buildBadgesSection(),
-              const SizedBox(height: 24),
-              _buildFavoritePlants(context, plants, favorites, ref),
-              const SizedBox(height: 24),
-              _buildSensorStatusCards(plants),
+              const SizedBox(height: 40),
+              _buildOptionsSection(),
               const SizedBox(height: 40),
             ],
           ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }
 
-  Widget _buildUserHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppDesignSystem.shadowSoft,
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 40,
-            backgroundColor: Color(0xFF4A6741),
-            child: Icon(Icons.person, size: 40, color: Colors.white),
+  Widget _buildProfileHeader() {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 60,
+          backgroundColor: _primaryColor.withOpacity(0.1),
+          child: const Icon(
+            Icons.person,
+            size: 60,
+            color: Color(0xFF4A6741),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Jardinero Digital',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text('7 plantas conectadas',
-                    style: TextStyle(color: Colors.grey.shade600)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    _buildTag('🌱 Novato', const Color(0xFF4A6741)),
-                    _buildTag('📡 3 sensores', Colors.blue),
-                  ],
-                ),
-              ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Jardinero Digital',
+          style: _textStyle(24, FontWeight.w800, _primaryColor),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '7 plantas conectadas',
+          style: _textStyle(16, FontWeight.w500, Colors.grey.shade600),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '🌱 Novato',
+                style: _textStyle(14, FontWeight.w600, _primaryColor),
+              ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '📡 3 sensores',
+                style: _textStyle(14, FontWeight.w600, Colors.blue),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildBadgesSection() {
     final badges = [
-      ('🌿', 'Primera planta', 'Agregaste tu primera planta'),
-      ('💬', 'Conversador', 'Enviaste 10 mensajes'),
-      ('📈', 'Científico', 'Monitoreo continuo por 7 días'),
-      ('🤖', 'IA Amiga', 'Usaste insights de IA'),
+      {'emoji': '🌿', 'title': 'Primera planta'},
+      {'emoji': '💬', 'title': 'Conversador'},
+      {'emoji': '📈', 'title': 'Científico'},
+      {'emoji': '🤖', 'title': 'IA Amiga'},
+      {'emoji': '💧', 'title': 'Regador'},
+      {'emoji': '🌞', 'title': 'Luz perfecta'},
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Insignias',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
+        Text(
+          'Logros',
+          style: _textStyle(20, FontWeight.w800, _primaryColor),
+        ),
+        const SizedBox(height: 16),
         SizedBox(
           height: 120,
           child: ListView.builder(
@@ -117,27 +125,34 @@ class ProfileSettingsScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final badge = badges[index];
               return GestureDetector(
-                onTap: () =>
-                    _showBadgeInfo(context, badge.$1, badge.$2, badge.$3),
+                onTap: () async {
+                  await HapticFeedback.lightImpact();
+                  // Handle badge tap
+                },
                 child: Container(
                   width: 100,
                   margin: EdgeInsets.only(
-                      right: index == badges.length - 1 ? 0 : 12),
-                  padding: const EdgeInsets.all(16),
+                    right: index == badges.length - 1 ? 0 : 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: AppDesignSystem.shadowSoft,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [_cardShadow],
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(badge.$1, style: const TextStyle(fontSize: 32)),
+                      Text(
+                        badge['emoji']!,
+                        style: const TextStyle(fontSize: 36),
+                      ),
                       const SizedBox(height: 8),
-                      Text(badge.$2,
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600),
-                          textAlign: TextAlign.center),
+                      Text(
+                        badge['title']!,
+                        style: _textStyle(
+                            12, FontWeight.w600, Colors.grey.shade800),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -149,332 +164,98 @@ class ProfileSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFavoritePlants(BuildContext context, List<Plant> plants,
-      List<String> favorites, WidgetRef ref) {
-    final favoritePlants =
-        plants.where((p) => favorites.contains(p.id)).toList();
-    final isGrid = ref.watch(viewModeProvider);
+  Widget _buildOptionsSection() {
+    final List<Map<String, dynamic>> options = [
+      {
+        'icon': Icons.favorite_border,
+        'title': 'Favoritos',
+        'color': Colors.red,
+      },
+      {
+        'icon': Icons.sensors_outlined,
+        'title': 'Sensores',
+        'color': Colors.blue,
+      },
+      {
+        'icon': Icons.notifications_outlined,
+        'title': 'Notificaciones',
+        'color': Colors.orange,
+      },
+      {
+        'icon': Icons.settings_outlined,
+        'title': 'Configuración',
+        'color': Colors.grey,
+      },
+      {
+        'icon': Icons.help_outline,
+        'title': 'Ayuda',
+        'color': Colors.green,
+      },
+      {
+        'icon': Icons.exit_to_app,
+        'title': 'Cerrar sesión',
+        'color': Colors.black,
+      },
+    ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Plantas favoritas',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-            Text('${favorites.length}/3',
-                style: const TextStyle(color: Colors.black54)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (isGrid)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.2,
-            ),
-            itemCount: favoritePlants.length,
-            itemBuilder: (context, index) =>
-                _buildFavoriteCard(favoritePlants[index], favorites, ref),
-          )
-        else
-          Column(
-            children: favoritePlants
-                .map((plant) => _buildFavoriteCard(plant, favorites, ref))
-                .toList(),
-          ),
-        if (favorites.length < 3)
-          _buildAddFavoriteButton(context, plants, favorites, ref),
-      ],
-    );
-  }
-
-  Widget _buildFavoriteCard(
-      Plant plant, List<String> favorites, WidgetRef ref) {
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: AppDesignSystem.shadowSoft,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: const Color(0xFF4A6741).withOpacity(0.1),
-                  image: plant.image.isNotEmpty
-                      ? DecorationImage(
-                          image: AssetImage(plant.image),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: plant.image.isEmpty
-                    ? const Icon(Icons.local_florist,
-                        size: 40, color: Color(0xFF4A6741))
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              Text(plant.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text(plant.species,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: plant.health / 100,
-                backgroundColor: Colors.grey.shade200,
-                color: plant.health > 70
-                    ? Colors.green
-                    : plant.health > 40
-                        ? Colors.orange
-                        : Colors.red,
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: GestureDetector(
-            onTap: () => _removeFavorite(plant.id, ref),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: AppDesignSystem.shadowSoft,
-              ),
-              child: const Icon(Icons.close, size: 18),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddFavoriteButton(BuildContext context, List<Plant> plants,
-      List<String> favorites, WidgetRef ref) {
-    final availablePlants =
-        plants.where((p) => !favorites.contains(p.id)).toList();
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: ElevatedButton(
-        onPressed: availablePlants.isEmpty
-            ? null
-            : () => _showAddFavoriteModal(context, availablePlants, ref),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF4A6741),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: const Color(0xFF4A6741).withOpacity(0.2)),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add, size: 20),
-            SizedBox(width: 8),
-            Text('Agregar planta favorita'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSensorStatusCards(List<Plant> plants) {
-    final onlineCount =
-        plants.where((p) => p.sensorStatus == SensorStatus.online).length;
-    final offlineCount =
-        plants.where((p) => p.sensorStatus == SensorStatus.offline).length;
-    final degradedCount =
-        plants.where((p) => p.sensorStatus == SensorStatus.degraded).length;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Estado de sensores',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildSensorCard('En línea', onlineCount, Colors.green, Icons.wifi),
-            const SizedBox(width: 12),
-            _buildSensorCard(
-                'Degradado', degradedCount, Colors.orange, Icons.warning),
-            const SizedBox(width: 12),
-            _buildSensorCard(
-                'Offline', offlineCount, Colors.grey, Icons.wifi_off),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSensorCard(String label, int count, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: AppDesignSystem.shadowSoft,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 24, color: color),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              count.toString(),
-              style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w700, color: color),
-            ),
-            Text(label,
-                style: const TextStyle(fontSize: 12, color: Colors.black54)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTag(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [_cardShadow],
       ),
-      child: Text(text,
-          style: TextStyle(
-              color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-    );
-  }
-
-  void _showBadgeInfo(
-      BuildContext context, String emoji, String title, String description) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 48)),
-            const SizedBox(height: 16),
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.black54)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A6741),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+      child: Column(
+        children: options.map<Widget>((Map<String, dynamic> option) {
+          final IconData icon = option['icon'] as IconData;
+          final Color color = option['color'] as Color;
+          final String title = option['title'] as String;
+          return GestureDetector(
+            onTap: () async {
+              await HapticFeedback.lightImpact();
+              // Handle option tap
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: option == options.last
+                      ? BorderSide.none
+                      : BorderSide(color: Colors.grey.shade100, width: 1),
+                ),
               ),
-              child: const Text('Genial'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddFavoriteModal(
-      BuildContext context, List<Plant> availablePlants, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Selecciona una planta',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            ...availablePlants
-                .map((plant) => ListTile(
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4A6741).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: plant.image.isNotEmpty
-                            ? Image.asset(plant.image, fit: BoxFit.cover)
-                            : const Icon(Icons.local_florist, size: 20),
-                      ),
-                      title: Text(plant.name),
-                      subtitle: Text(plant.species),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: () {
-                          ref.read(favoritePlantsProvider.notifier).state = [
-                            ...ref.read(favoritePlantsProvider),
-                            plant.id
-                          ];
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ))
-                .toList(),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey.shade100,
-                foregroundColor: Colors.black54,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: color,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: _textStyle(16, FontWeight.w600),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey.shade400,
+                  ),
+                ],
               ),
-              child: const Text('Cancelar'),
             ),
-          ],
-        ),
+          );
+        }).toList(),
       ),
     );
-  }
-
-  void _removeFavorite(String plantId, WidgetRef ref) {
-    final current = ref.read(favoritePlantsProvider);
-    ref.read(favoritePlantsProvider.notifier).state =
-        current.where((id) => id != plantId).toList();
   }
 }
