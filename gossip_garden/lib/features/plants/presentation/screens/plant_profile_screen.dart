@@ -1,171 +1,659 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/plant_providers.dart';
-import '../widgets/telemetry_panel.dart';
-import '../../data/models/plant.dart';
-import '../../data/models/plant_enums.dart';
-import '../../data/models/comfort_zones.dart';
-import 'package:gossip_garden/core/theme/app_design_system.dart';
+import 'package:gossip_garden/features/plants/presentation/providers/plant_providers.dart';
+import 'package:gossip_garden/features/plants/presentation/providers/navigation_provider.dart';
+import 'package:gossip_garden/features/plants/data/models/plant.dart';
+import 'package:gossip_garden/features/plants/data/models/plant_enums.dart';
+import 'package:gossip_garden/features/plants/data/models/comfort_zones.dart';
 
 class PlantProfileScreen extends ConsumerWidget {
   final String plantId;
   final VoidCallback onBack;
-  final Function(String) onOpenChat;
 
   const PlantProfileScreen({
     super.key,
     required this.plantId,
     required this.onBack,
-    required this.onOpenChat,
   });
+
+  static const _backgroundColor = Color(0xFFFDFCF8);
+  static const _primaryColor = Color(0xFF4A6741);
+  static const _yellowAccent = Color(0xFFFFD12B);
+  static const _redAccent = Color(0xFFEF4444);
+  static const _lightGrey = Color(0xFFF0F4EF);
+  static const _cardShadow = BoxShadow(
+    color: Color(0x0A785A32),
+    blurRadius: 20,
+    offset: Offset(0, 8),
+  );
+  static const _softShadow = BoxShadow(
+    color: Color(0x0A785A32),
+    blurRadius: 20,
+  );
+
+  TextStyle _textStyle(double fontSize, FontWeight fontWeight, [Color? color]) {
+    return TextStyle(
+      fontFamily: 'PlusJakartaSans',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color ?? Colors.black87,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plantsAsync = ref.watch(plantsProvider);
+    final navNotifier = ref.read(navigationProvider.notifier);
 
     return plantsAsync.when(
       data: (plants) {
-        final plant = plants.firstWhere((p) => p.id == plantId,
-            orElse: () => plants.first);
+        final plant = plants.firstWhere(
+          (p) => p.id == plantId,
+          orElse: () => plants.first,
+        );
+
         return Scaffold(
-          backgroundColor: const Color(0xFFFDFCF8),
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: onBack,
-            ),
-            title: Text(plant.name),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.chat_bubble_outline),
-                onPressed: () => onOpenChat(plantId),
-              ),
-            ],
-          ),
+          backgroundColor: _backgroundColor,
+          appBar: _buildAppBar(context, plant, navNotifier),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildPlantHeader(plant),
-                const SizedBox(height: 24),
-                _buildHealthBar(context, plant),
-                const SizedBox(height: 24),
-                _buildInsights(plant),
-                const SizedBox(height: 24),
-                TelemetryPanel(
-                  telemetryData: [
-                    _telemetryData(
-                        'Humedad suelo',
-                        plant.sensors.soilMoisture,
-                        plant.comfortZones.soilMoisture,
-                        '%',
-                        Icons.water_drop,
-                        const Color(0xFF4A6741)),
-                    _telemetryData(
-                        'Temperatura',
-                        plant.sensors.temperature,
-                        plant.comfortZones.temperature,
-                        '°C',
-                        Icons.thermostat,
-                        Colors.orange),
-                    _telemetryData(
-                        'Luz',
-                        plant.sensors.light,
-                        plant.comfortZones.light,
-                        'lux',
-                        Icons.light_mode,
-                        Colors.amber),
-                    _telemetryData(
-                        'Humedad aire',
-                        plant.sensors.humidity,
-                        plant.comfortZones.humidity,
-                        '%',
-                        Icons.cloud,
-                        Colors.blue),
-                  ],
-                  initiallyExpanded: true,
-                ),
-                const SizedBox(height: 24),
-                _buildActions(plant),
+                _buildPlantAvatarSection(plant),
+                const SizedBox(height: 32),
+                _buildHealthBanner(plant),
+                const SizedBox(height: 32),
+                _buildTelemetryGrid(plant),
+                const SizedBox(height: 32),
+                _buildChatFeedbackSection(),
+                const SizedBox(height: 32),
+                _buildLogActionSection(),
                 const SizedBox(height: 40),
               ],
             ),
           ),
         );
       },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
+      loading: () => Scaffold(
+        backgroundColor: _backgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(color: _primaryColor),
+        ),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: _backgroundColor,
+        body: Center(
+          child: Text('Error: $e', style: _textStyle(16, FontWeight.w500)),
+        ),
+      ),
     );
   }
 
-  Widget _buildPlantHeader(Plant plant) {
-    return Row(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
+  AppBar _buildAppBar(
+    BuildContext context,
+    Plant plant,
+    NavigationNotifier navNotifier,
+  ) {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      leading: GestureDetector(
+        onTap: () async {
+          await HapticFeedback.lightImpact();
+          onBack();
+        },
+        child: Container(
+          margin: const EdgeInsets.only(left: 16),
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: const Color(0xFF4A6741).withOpacity(0.1),
-            image: plant.image.isNotEmpty
-                ? DecorationImage(
-                    image: AssetImage(plant.image),
-                    fit: BoxFit.cover,
-                  )
-                : null,
+            color: Colors.grey.shade100,
+            shape: BoxShape.circle,
           ),
-          child: plant.image.isEmpty
-              ? const Icon(Icons.local_florist,
-                  size: 40, color: Color(0xFF4A6741))
-              : null,
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: Colors.black45,
+          ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      actions: [
+        GestureDetector(
+          onTap: () async {
+            await HapticFeedback.lightImpact();
+            navNotifier.openChat(plantId);
+          },
+          child: Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _yellowAccent,
+              borderRadius: BorderRadius.circular(100),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.forum_outlined,
+                  size: 16,
+                  color: Colors.black87,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Hablar con ${plant.name}',
+                  style: _textStyle(12, FontWeight.bold, Colors.black87),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlantAvatarSection(Plant plant) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+                image: plant.image.isNotEmpty
+                    ? DecorationImage(
+                        image: AssetImage(plant.image),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: plant.image.isEmpty
+                  ? Icon(
+                      Icons.local_florist,
+                      size: 60,
+                      color: _primaryColor,
+                    )
+                  : null,
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [_softShadow],
+                ),
+                child: Icon(
+                  Icons.wifi,
+                  size: 16,
+                  color: plant.sensorStatus == SensorStatus.online
+                      ? Colors.green
+                      : Colors.grey,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Text(
+              '😥',
+              style: const TextStyle(fontSize: 24),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              plant.name,
+              style: _textStyle(24, FontWeight.w800, _primaryColor),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          plant.species,
+          style: _textStyle(14, FontWeight.w500, Colors.black45),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _lightGrey,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Text(
+                'Sedienta',
+                style: _textStyle(10, FontWeight.w600, _primaryColor),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Text(
+                'Precisión 85%',
+                style: _textStyle(10, FontWeight.w600, Colors.black45),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHealthBanner(Plant plant) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [_cardShadow],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(plant.name,
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.w700)),
-              Text(plant.species,
-                  style: const TextStyle(color: Colors.black54)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              Text(
+                '¿Cómo me siento?',
+                style: _textStyle(14, FontWeight.w700),
+              ),
+              const Spacer(),
+              Text(
+                '${plant.health.toInt()}%',
+                style: _textStyle(20, FontWeight.w800, _primaryColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          LinearProgressIndicator(
+            value: plant.health / 100,
+            backgroundColor: Colors.grey.shade200,
+            color: _primaryColor,
+            borderRadius: BorderRadius.circular(10),
+            minHeight: 12,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(
+                Icons.history_rounded,
+                size: 12,
+                color: Colors.black45,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Última actualización: 5 min',
+                style: _textStyle(10, FontWeight.w500, Colors.black45),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTelemetryGrid(Plant plant) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'TELEMETRÍA',
+          style: _textStyle(12, FontWeight.w700, Colors.black45),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.9,
+          children: [
+            _buildTelemetryCard(
+              icon: Icons.water_drop_rounded,
+              title: 'Humedad',
+              value: '45%',
+              currentValue: plant.sensors.soilMoisture,
+              comfortZone: plant.comfortZones.soilMoisture,
+              showAlert: true,
+              alertText: 'Fuera de zona hace 3 dias',
+            ),
+            _buildTelemetryCard(
+              icon: Icons.thermostat_rounded,
+              title: 'Temperatura',
+              value: '22°C',
+              currentValue: plant.sensors.temperature,
+              comfortZone: plant.comfortZones.temperature,
+              showAlert: false,
+            ),
+            _buildTelemetryCard(
+              icon: Icons.water_drop_rounded,
+              title: 'Humedad suelo',
+              value: '68%',
+              currentValue: plant.sensors.soilMoisture,
+              comfortZone: plant.comfortZones.soilMoisture,
+              showAlert: true,
+              alertText: 'Fuera de zona hace 3 dias',
+            ),
+            _buildTelemetryCard(
+              icon: Icons.light_mode_rounded,
+              title: 'Luz',
+              value: '850 lux',
+              currentValue: plant.sensors.light,
+              comfortZone: plant.comfortZones.light,
+              showAlert: false,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTelemetryCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required double currentValue,
+    required Range comfortZone,
+    required bool showAlert,
+    String? alertText,
+  }) {
+    final minComfort = comfortZone.min;
+    final maxComfort = comfortZone.max;
+    final isInComfortZone =
+        currentValue >= minComfort && currentValue <= maxComfort;
+    final comfortRangeWidth = maxComfort - minComfort;
+    final totalRange = 100.0; // Assuming 0-100 scale
+    final minPosition = minComfort / totalRange;
+    final maxPosition = maxComfort / totalRange;
+    final currentPosition = currentValue / totalRange;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [_cardShadow],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: _primaryColor,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: _textStyle(14, FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: _textStyle(28, FontWeight.w800, _primaryColor),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 20,
+            child: Stack(
+              children: [
+                // Background track
+                Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                // Comfort zone highlight
+                Positioned(
+                  left: minPosition * 100,
+                  width: comfortRangeWidth,
+                  child: Container(
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: _moodColor(plant.mood).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: _primaryColor,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
-                      plant.mood.name.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _moodColor(plant.mood),
+                  ),
+                ),
+                // Min comfort marker
+                Positioned(
+                  left: minPosition * 100 - 4,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8BBD0),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                // Max comfort marker
+                Positioned(
+                  left: maxPosition * 100 - 4,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8BBD0),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                // Current value indicator
+                Positioned(
+                  left: currentPosition * 100 - 6,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: isInComfortZone ? _primaryColor : _redAccent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
                       ),
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${minComfort.toInt()}%',
+                style: _textStyle(10, FontWeight.w500, Colors.black12),
+              ),
+              Text(
+                '${maxComfort.toInt()}%',
+                style: _textStyle(10, FontWeight.w500, Colors.black12),
+              ),
+            ],
+          ),
+          if (showAlert && alertText != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_rounded,
+                  size: 12,
+                  color: _redAccent,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  alertText,
+                  style: _textStyle(10, FontWeight.w500, _redAccent),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatFeedbackSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'FEEDBACK',
+          style: _textStyle(12, FontWeight.w700, Colors.black45),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [_cardShadow],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.trending_up_rounded,
+                    size: 20,
+                    color: _primaryColor,
+                  ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color:
-                          _personalityColor(plant.personality).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  Text(
+                    'Lo que quiero contarte',
+                    style: _textStyle(14, FontWeight.w700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildChatBubble(
+                'Mi humedad ha estado algo loca esta semana 😅',
+              ),
+              const SizedBox(height: 12),
+              _buildChatBubble(
+                '¡Estoy creciendo 12% más rápido que el mes pasado! 🌿',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChatBubble(String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [_softShadow],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.forum_outlined,
+            size: 16,
+            color: _primaryColor,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: _textStyle(13, FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogActionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ACCIONES',
+          style: _textStyle(12, FontWeight.w700, Colors.black45),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [_cardShadow],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Registrar acción',
+                style: _textStyle(14, FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildActionButton(
+                    icon: Icons.water_drop_rounded,
+                    label: 'Riego',
+                    color: _primaryColor,
+                  ),
+                  _buildActionButton(
+                    icon: Icons.content_cut_rounded,
+                    label: 'Poda',
+                    color: const Color(0xFFE0F2F1),
+                  ),
+                  _buildActionButton(
+                    icon: Icons.create_outlined,
+                    label: 'Fertilicé',
+                    color: const Color(0xFFE0F7FA),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Icon(
+                    Icons.local_florist_rounded,
+                    size: 12,
+                    color: Colors.black45,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: Text(
-                      plant.personality.name.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _personalityColor(plant.personality),
-                      ),
+                      'Cada acción me ayuda a conocerte mejor 🌿',
+                      style: _textStyle(10, FontWeight.w500, Colors.black45),
                     ),
                   ),
                 ],
@@ -177,199 +665,38 @@ class PlantProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHealthBar(BuildContext context, Plant plant) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Salud',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            Text('${plant.health.toStringAsFixed(0)}%',
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF4A6741))),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Stack(
-          children: [
-            Container(
-              height: 12,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOut,
-              height: 12,
-              width: MediaQuery.of(context).size.width * (plant.health / 100),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    plant.health > 70
-                        ? Colors.green
-                        : plant.health > 40
-                            ? Colors.orange
-                            : Colors.red,
-                    plant.health > 70
-                        ? const Color(0xFF8BC34A)
-                        : plant.health > 40
-                            ? Colors.amber
-                            : Colors.redAccent,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Degradada',
-                style: TextStyle(
-                    color: plant.health < 50 ? Colors.red : Colors.black54)),
-            Text('Óptima',
-                style: TextStyle(
-                    color: plant.health > 80 ? Colors.green : Colors.black54)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInsights(Plant plant) {
-    if (plant.insights.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: AppDesignSystem.shadowSoft,
-        ),
-        child: const Text('No hay insights aún',
-            style: TextStyle(color: Colors.black54)),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppDesignSystem.shadowSoft,
-      ),
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        await HapticFeedback.lightImpact();
+        // Handle action button tap
+      },
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('📈 Insights recientes',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          ...plant.insights
-              .map((insight) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.circle,
-                            size: 8, color: Color(0xFF4A6741)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            child: Text(insight,
-                                style: const TextStyle(fontSize: 14))),
-                      ],
-                    ),
-                  ))
-              .toList(),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: label == 'Riego' ? Colors.white : Colors.black87,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: _textStyle(12, FontWeight.w600),
+          ),
         ],
       ),
     );
-  }
-
-  Widget _buildActions(Plant plant) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Acciones',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _actionButton('💬 Hablar con planta', () => onOpenChat(plantId)),
-            _actionButton('💧 Regar', () {}),
-            _actionButton('📊 Ver historial', () {}),
-            _actionButton('⚙️ Ajustar sensores', () {}),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _actionButton(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: AppDesignSystem.shadowSoft,
-        ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-      ),
-    );
-  }
-
-  TelemetryData _telemetryData(String label, double value, Range range,
-      String unit, IconData icon, Color color) {
-    return TelemetryData(
-      label: label,
-      value: value,
-      min: range.min,
-      max: range.max,
-      unit: unit,
-      icon: icon,
-      color: color,
-    );
-  }
-
-  Color _moodColor(PlantMood mood) {
-    switch (mood) {
-      case PlantMood.happy:
-        return Colors.green;
-      case PlantMood.thirsty:
-        return Colors.orange;
-      case PlantMood.stressed:
-        return Colors.red;
-      case PlantMood.cold:
-        return Colors.blue;
-      case PlantMood.hot:
-        return Colors.deepOrange;
-      case PlantMood.perfect:
-        return const Color(0xFF8BC34A);
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _personalityColor(PlantPersonality personality) {
-    switch (personality) {
-      case PlantPersonality.playful:
-        return Colors.purple;
-      case PlantPersonality.wise:
-        return Colors.brown;
-      case PlantPersonality.dramatic:
-        return Colors.pink;
-      default:
-        return Colors.grey;
-    }
   }
 }

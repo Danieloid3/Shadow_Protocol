@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/plant_providers.dart';
-import '../widgets/plant_feed_card.dart';
+
 import '../widgets/summary_banner.dart';
 
 class DashboardScreen extends ConsumerWidget {

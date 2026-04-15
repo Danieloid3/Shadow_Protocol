@@ -131,7 +131,6 @@ class MainScreen extends ConsumerWidget {
       return PlantProfileScreen(
         plantId: nav.selectedPlantId,
         onBack: notifier.handleBack,
-        onOpenChat: notifier.openChat,
       );
     }
     if (nav.showChat) {

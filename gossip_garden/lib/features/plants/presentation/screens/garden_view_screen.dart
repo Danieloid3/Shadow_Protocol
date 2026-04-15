@@ -13,10 +13,6 @@ class GardenViewScreen extends ConsumerWidget {
 
   static const _backgroundColor = Color(0xFFFDFCF8);
   static const _primaryColor = Color(0xFF4A6741);
-  static const _cardShadow = BoxShadow(
-    color: Color(0x0A785A32),
-    blurRadius: 20,
-  );
 
   TextStyle _textStyle(double fontSize, FontWeight fontWeight, [Color? color]) {
     return TextStyle(
@@ -196,7 +192,6 @@ class GardenViewScreen extends ConsumerWidget {
       ),
     );
   }
-
 
   Color _getMoodColor(PlantMood mood) {
     switch (mood) {

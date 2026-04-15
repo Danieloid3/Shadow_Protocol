@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/plant_providers.dart';
-import '../providers/chat_providers.dart';
+
 import '../providers/navigation_provider.dart';
 import '../../data/models/plant.dart';
 import '../../data/models/plant_enums.dart';
-import 'package:gossip_garden/core/theme/app_design_system.dart';
 
 class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});
+
+  static const _cardShadow = BoxShadow(
+    color: Color(0x0A785A32),
+    blurRadius: 20,
+    offset: Offset(0, 8),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,7 +58,7 @@ class ChatListScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: AppDesignSystem.shadowSoft,
+          boxShadow: [_cardShadow],
         ),
         child: Row(
           children: [
@@ -224,8 +229,6 @@ class ChatListScreen extends ConsumerWidget {
         return Colors.deepOrange;
       case PlantMood.perfect:
         return const Color(0xFF8BC34A);
-      default:
-        return Colors.grey;
     }
   }
 }
