@@ -8,6 +8,7 @@ import dht
 import utime
 import ssl
 import ujson
+import time
 from umqtt.simple import MQTTClient
 
 # -----------------------------
@@ -19,15 +20,15 @@ TOPIC = "plantas/{}/sensores".format(DEVICE_ID)
 PUBLISH_INTERVAL_MS = 5000
 
 # WiFi
-WIFI_SSID = "Dani"
-WIFI_PASSWORD = "danii123"
+WIFI_SSID = "Firefly "
+WIFI_PASSWORD = "Tonny.1520"
 
 WIFI_CONNECT_TIMEOUT_MS = 12000
 WIFI_RETRY_DELAY_MS = 2000
 
 # MQTT
 # MQTT
-MQTT_BROKER = "0712cb0c18314a609092dfd3544c234c.s1.eu.hivemq.cloud" # Tu Cluster URL
+MQTT_BROKER = "a2d6fc0d250f4e6681561fc0988f1b40.s1.eu.hivemq.cloud" # Tu Cluster URL
 MQTT_PORT = 8883 # Puerto seguro TLS (no usar 1883)
 MQTT_USER = "Danieloide" # El usuario que creaste en "Access Management"
 MQTT_PASSWORD = "Danii123" # La contraseña de ese usuario
@@ -44,8 +45,8 @@ BH1750_ADDR = 0x23
 
 # Calibración del sensor de suelo capacitivo (SEN0193)
 # NOTA: Revisa estos valores imprimiendo 'raw_avg' en seco y en agua.
-SOIL_RAW_DRY = 2450 # Valor aproximado cuando está al aire libre (completamente seco)
-SOIL_RAW_WET = 1300 # Valor aproximado cuando está sumergido en agua
+SOIL_RAW_DRY = 2600 # Valor aproximado cuando está al aire libre (completamente seco)
+SOIL_RAW_WET = 1400 # Valor aproximado cuando está sumergido en agua
 
 # Rangos esperados
 TEMP_MIN = -40.0
@@ -62,7 +63,6 @@ LIGHT_MAX = 65535 # Cambiado para el máximo de luxes reales del GY-30
 # -----------------------------
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-
 dht_sensor = dht.DHT22(machine.Pin(DHT22_PIN))
 
 soil_adc = machine.ADC(machine.Pin(SOIL_ADC_PIN))
@@ -163,7 +163,8 @@ def read_light_safe():
 def wifi_connect_if_needed():
     if wlan.isconnected():
         return True
-
+    
+    
     log("WiFi desconectado, reconectando...")
     wlan.disconnect()
     wlan.connect(WIFI_SSID, WIFI_PASSWORD)
